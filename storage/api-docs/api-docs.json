@@ -1,0 +1,157 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "TrackingApi v1.0",
+        "version": "1.0"
+    },
+    "servers": [
+        {
+            "url": "http://odin.microblet.com/tracking-api/public/index.php"
+        }
+    ],
+    "paths": {
+        "/api/v1/carriers/get": {
+            "get": {
+                "tags": [
+                    "General"
+                ],
+                "summary": "Mostrar carriers",
+                "operationId": "App\\Http\\Controllers\\Api\\ApiController::getCarriers",
+                "responses": {
+                    "200": {
+                        "description": "Mostrar todos los carriers."
+                    },
+                    "default": {
+                        "description": "Ha ocurrido un error."
+                    }
+                }
+            }
+        },
+        "/api/v1/carriers-messages/all": {
+            "get": {
+                "tags": [
+                    "General"
+                ],
+                "summary": "Mostrar mensajes de carriers",
+                "operationId": "App\\Http\\Controllers\\Api\\ApiController::getCarrierMessages",
+                "responses": {
+                    "200": {
+                        "description": "Mostrar todos los mensajes de carriers."
+                    },
+                    "default": {
+                        "description": "Ha ocurrido un error."
+                    }
+                }
+            }
+        },
+        "/api/v1/tracking/{trackingId}": {
+            "get": {
+                "tags": [
+                    "General"
+                ],
+                "summary": "Obtener tracking",
+                "operationId": "App\\Http\\Controllers\\Api\\ApiController::getTracking",
+                "parameters": [
+                    {
+                        "name": "trackingId",
+                        "in": "path",
+                        "description": "ID de tracking",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Obtener tracking de Chazki"
+                    },
+                    "default": {
+                        "description": "Ha ocurrido un error."
+                    }
+                }
+            }
+        },
+        "/api/v1/carriers-messages/andreani": {
+            "get": {
+                "tags": [
+                    "Andreani"
+                ],
+                "summary": "Mostrar mensajes de Andreani",
+                "operationId": "App\\Http\\Controllers\\Api\\ApiController::getMessagesAndreani",
+                "responses": {
+                    "200": {
+                        "description": "Mostrar todos los mensajes de Andreani."
+                    },
+                    "default": {
+                        "description": "Ha ocurrido un error."
+                    }
+                }
+            }
+        },
+        "/api/v1/tracking/andreani/{trackingId}": {
+            "post": {
+                "tags": [
+                    "Andreani"
+                ],
+                "summary": "Obtener tracking de Andreani",
+                "operationId": "App\\Http\\Controllers\\Api\\ApiController::getTrackingAndreani",
+                "parameters": [
+                    {
+                        "name": "trackingId",
+                        "in": "path",
+                        "description": "ID de tracking",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Obtener tracking de Andreani"
+                    },
+                    "default": {
+                        "description": "Ha ocurrido un error."
+                    }
+                }
+            }
+        },
+        "/api/v1/carriers-messages/chazki": {
+            "get": {
+                "tags": [
+                    "Chazki"
+                ],
+                "summary": "Mostrar mensajes de Chazki",
+                "operationId": "App\\Http\\Controllers\\Api\\ApiController::getMessagesChazki",
+                "responses": {
+                    "200": {
+                        "description": "Mostrar todos los mensajes de Chazki."
+                    },
+                    "default": {
+                        "description": "Ha ocurrido un error."
+                    }
+                }
+            }
+        },
+        "/api/v1/tracking/chazki/{trackingId}": {
+            "post": {
+                "tags": [
+                    "Chazki"
+                ],
+                "summary": "Obtener tracking de Chazki",
+                "operationId": "App\\Http\\Controllers\\Api\\ApiController::getTrackingChazki",
+                "parameters": [
+                    {
+                        "name": "trackingId",
+                        "in": "path",
+                        "description": "ID de tracking",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Obtener tracking de Chazki"
+                    },
+                    "default": {
+                        "description": "Ha ocurrido un error."
+                    }
+                }
+            }
+        }
+    }
+}
