@@ -85,7 +85,7 @@ class ApiController extends Controller
         
         try{
             //primero pruebo con chazki
-            $response = $client->get(env('CHAZKI_API_BASE_URL').'/shipment/'.$trackingId.'?key='.env('CHAZKI_API_KEY'),['http_errors' => false]);
+            $response = $client->get(env('CHAZKI_API_BASE_URL').'/shipment/NES'.$trackingId.'?key='.env('CHAZKI_API_KEY'),['http_errors' => false]);
             
             if($response->getStatusCode() == 200){
                 //es chazki
@@ -379,7 +379,7 @@ class ApiController extends Controller
         $client = new \GuzzleHttp\Client();
         
         try{
-            $response = $client->get(env('CHAZKI_API_BASE_URL').'/shipment/'.$trackingId.'?key='.env('CHAZKI_API_KEY'),['http_errors' => false]);
+            $response = $client->get(env('CHAZKI_API_BASE_URL').'/shipment/NES'.$trackingId.'?key='.env('CHAZKI_API_KEY'),['http_errors' => false]);
             print_r($response);
             die('---');
             if($response->getStatusCode() == 200){
