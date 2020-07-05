@@ -81,127 +81,44 @@ class ApiController extends Controller
         $history = null;
         $carrier = null;
         $icon = null;
+        $error = null;
+        $success = false;
         $client = new \GuzzleHttp\Client();
         
         try{
             //primero pruebo con chazki
-            $response = $client->get(env('CHAZKI_API_BASE_URL').'/shipment/NES'.$trackingId.'?key='.env('CHAZKI_API_KEY'),['http_errors' => false]);
+            $resultChazki = $this->searchTrackingChazki($trackingId);
             
-            if($response->getStatusCode() == 200){
-                //es chazki
-                $response = $response->getBody();
-                $response = json_decode($response);
-                $history = array_reverse($response->history);
-                
-                //foreach de history y consulto en ShippingMessages
-                if($history){
-                    $x = true;
-                    foreach($history as $h){
-                        $arr = [];
-                        $date = $h->date;
-                        
-                        $date = \DateTime::createFromFormat("Y-m-d\TH:i:s.u+", $date);
-                        $date = $date->format('d/m/Y H:i');
-                        
-                        $status = strtoupper($h->status);
-                        $shippingMessage = ShippingMessages::where('carrier_status_id',$status)->first();
-                        
-                        if($shippingMessage){
-                            $arr['fecha']  = $date;
-                            $arr['estado']  = $status;
-                            $arr['descripcion']  = $shippingMessage->message;
-                            $arr['siguiente']  = $shippingMessage->next_status;
-                            
-                            if($x){
-                                $icon = $shippingMessage->icon;
-                                $x = false;
-                            }
-                        }else{
-                            $arr['fecha']  = $date;
-                            $arr['estado']  = $status;
-                            $arr['descripcion']  = $status;
-                            $arr['siguiente']  = "X";
-                        }
-                        
-                        array_push($arrayHistory,$arr);
-                    }
-                }
-                
+            if($resultChazki['success']){
+                $arrayHistory = $resultChazki['history'];
+                $icon = $resultChazki['icon'];
+                $success = true;
                 $carrier = "Chazki";
             }else{
-                //sino pruebo con Andreani
-                $responseLogin = $client->get(env('ANDREANI_API_BASE_URL').'/login', ['headers' => ['Authorization' => 'Basic bmVzc3ByZXNvX3dzOkFiZGgyMzQhIWQ=']]);
+                $error = $resultChazki['error'];
+                //en caso de error, pruebo con andreani
                 
-                if($responseLogin->getStatusCode() == 200){
-                    $apiKey = $responseLogin->getHeader('X-Authorization-token');
-                    $apiKey = $apiKey[0];
-                    
-                    //primero obtener el numero de envio de aca y despues el trackeo
-                    //https://api.andreani.com/v1/envios?codigoCliente=CL0008157&idDeProducto=37026829
-                    $responseOrden = $client->get(env('ANDREANI_API_BASE_URL').'/v1/envios?codigoCliente=CL0008157&idDeProducto='.$trackingId,['http_errors' => false,'headers' => ['x-authorization-token' => $apiKey]]);
-                    if($responseOrden->getStatusCode() == 200){
-                        $responseOrden = $responseOrden->getBody();
-                        $responseOrden = json_decode($responseOrden);
-                        $trackingId = $responseOrden->envios[0]->numeroDeTracking;
-                        
-                        $response = $client->get(env('ANDREANI_API_BASE_URL').'/v1/envios/'.$trackingId.'/trazas',['http_errors' => false,'headers' => ['x-authorization-token' => $apiKey]]);
-                        
-                        if($response->getStatusCode() == 200){
-                            $response = $response->getBody();
-                            $response = json_decode($response);
-                            $history = array_reverse($response->eventos);
-                            
-                            if($history){
-                                $x = true;
-                                foreach($history as $h){
-                                    $arr = [];
-                                    $date = $h->Fecha;
-                                    
-                                    $date = \DateTime::createFromFormat("Y-m-d\TH:i:s", $date);
-                                    $date = $date->format('d/m/Y H:i');
-                                    $status = $h->EstadoId;
-                                    $shippingMessage = ShippingMessages::where('carrier_status_id',$status)->first();
-                                    
-                                    if($shippingMessage){
-                                        $arr['fecha']  = $date;
-                                        $arr['estado']  = $shippingMessage->description_carrier_status;
-                                        $arr['descripcion']  = $shippingMessage->message;
-                                        $arr['siguiente']  = $shippingMessage->next_status;
-                                        
-                                        if($x){
-                                            $icon = $shippingMessage->icon;
-                                            $x = false;
-                                        }
-                                    }else{
-                                        $arr['fecha']  = $date;
-                                        $arr['estado']  = $status;
-                                        $arr['descripcion']  = $status;
-                                        $arr['siguiente']  = "X";
-                                    }
-                                    
-                                    
-                                    array_push($arrayHistory,$arr);
-                                }
-                            }
-                            
-                            $carrier = "Andreani";
-                        }else{
-                            return response()->json(["success" => false, "error" => "No se pudo encontrar ningún envío."], 501);
-                        }
-                    }else{
-                        return response()->json(["success" => false, "error" => "No se pudo encontrar ninguna orden asociada."], 501);
-                    }
+                $resultAndreani = $this->searchTrackingAndreani($trackingId);
+                if($resultAndreani['success']){
+                    $arrayHistory = $resultAndreani['history'];
+                    $icon = $resultAndreani['icon'];
+                    $success = true;
+                    $carrier = "Andreani";
                 }else{
-                    return response()->json(["success" => false, "error" => "Error al loguearse en la API de Andreani."], 501);
+                    $error = $error." ".$resultAndreani['error'];
                 }
             }
-            
         }catch (Exception $e) {
             return response()->json(["success" => false, "error" => "Error al obtener el historial del envío."], 501);
         }
         
+        if(!$success){
+            return response()->json(["success" => false, "error" => $error." Por favor, inténtelo de nuevo más tarde!"]);
+        }
+        
         return response()->json(["success"=>true,"carrier"=>$carrier,"icon"=>$icon,"history"=>$arrayHistory]);
     }
+    
     
     /**
     * @OA\Get(
@@ -246,89 +163,110 @@ class ApiController extends Controller
     */
     public function getTrackingAndreani(Request $request, $trackingId)
     {
-        $arrayHistory = [];
+        $arrayHistory = null;
         $history = null;
         $client = new \GuzzleHttp\Client();
-        
+        $success = false;
         try{
-            $responseLogin = $client->get(env('ANDREANI_API_BASE_URL').'/login', ['headers' => ['Authorization' => 'Basic bmVzc3ByZXNvX3dzOkFiZGgyMzQhIWQ=']]);
-            if($responseLogin->getStatusCode() == 200){
-                $apiKey = $responseLogin->getHeader('X-Authorization-token');
-                $apiKey = $apiKey[0];
+            $result = $this->searchTrackingAndreani($trackingId);
+            
+            if($result['success']){
+                $arrayHistory = $result['history'];
+                $success = true;
+            }else{
+                return response()->json(["success" => false, "error" => $result['error']], 501);
+            }
+        }catch (Exception $e) {
+            return response()->json(["success" => false, "error" => "Ocurrió un error en el servicio de Andreani."], 501);
+        }
+        
+        return response()->json(["success" => $success, "history" => $arrayHistory]);
+    }
+    
+    private function searchTrackingAndreani($trackingId){
+        $arrayHistory = [];
+        $history = null;
+        $icon = null;
+        $client = new \GuzzleHttp\Client();
+        
+        $responseLogin = $client->get(env('ANDREANI_API_BASE_URL').'/login', ['headers' => ['Authorization' => 'Basic bmVzc3ByZXNvX3dzOkFiZGgyMzQhIWQ=']]);
+                
+        if($responseLogin->getStatusCode() == 200){
+            $apiKey = $responseLogin->getHeader('X-Authorization-token');
+            $apiKey = $apiKey[0];
+            
+            //primero obtener el numero de envio de aca y despues el trackeo
+            //https://api.andreani.com/v1/envios?codigoCliente=CL0008157&idDeProducto=37026829
+            $responseOrden = $client->get(env('ANDREANI_API_BASE_URL').'/v1/envios?codigoCliente=CL0008157&idDeProducto='.$trackingId,['http_errors' => false,'headers' => ['x-authorization-token' => $apiKey]]);
+            
+            if($responseOrden->getStatusCode() == 200){
+                $responseOrden = $responseOrden->getBody();
+                $responseOrden = json_decode($responseOrden);
+                $trackingId = $responseOrden->envios[0]->numeroDeTracking;
                 
                 $response = $client->get(env('ANDREANI_API_BASE_URL').'/v1/envios/'.$trackingId.'/trazas',['http_errors' => false,'headers' => ['x-authorization-token' => $apiKey]]);
-                
                 
                 if($response->getStatusCode() == 200){
                     $response = $response->getBody();
                     $response = json_decode($response);
-                    /*$history =  json_decode('{
-                                  "eventos":[{
-                                    "Fecha":"2019-04-11T11:18:47",
-                                    "Estado":"Pendiente de ingreso",
-                                    "EstadoId":22,
-                                    "Motivo":null,
-                                    "MotivoId":0,
-                                    "Submotivo":null,
-                                    "SubmotivoId":0,
-                                    "Sucursal":"",
-                                    "SucursalId":0,
-                                    "Ciclo":""
-                                  },{
-                                    "Fecha":"2019-04-13T10:05:32",
-                                    "Estado":"Ingreso al circuito operativo",
-                                    "EstadoId":23,
-                                    "Motivo":null,
-                                    "MotivoId":0,
-                                    "Submotivo":null,
-                                    "SubmotivoId":0,
-                                    "Sucursal":"",
-                                    "SucursalId":121,
-                                    "Ciclo":""
-                                  }]
-                                }');*/
+                    $history = array_reverse($response->eventos);
                     
-                    //foreach de history y consulto en ShippingMessages
-                    //$history = array_reverse($response);
-                    
-                    print_r(json_encode($response));
-                    die('*--');
                     if($history){
+                        $x = true;
+                        $lastStatus = null;
                         foreach($history as $h){
                             $arr = [];
                             $date = $h->Fecha;
+                            
+                            $date = \DateTime::createFromFormat("Y-m-d\TH:i:s", $date);
+                            $date = $date->format('d/m/Y H:i');
                             $status = $h->EstadoId;
-                            $shippingMessage = ShippingMessages::where('carrier_status_id',$status)->first();
+                            $shippingMessage = ShippingMessages::where('carrier_status_id',$status)->where('carrier_id',1)->first();
                             
                             if($shippingMessage){
                                 $arr['fecha']  = $date;
                                 $arr['estado']  = $shippingMessage->description_carrier_status;
                                 $arr['descripcion']  = $shippingMessage->message;
                                 $arr['siguiente']  = $shippingMessage->next_status;
+                                
+                                if($x){
+                                    $icon = $shippingMessage->icon;
+                                    $x = false;
+                                }
                             }else{
-                               $arr['fecha']  = $date;
+                                $arr['fecha']  = $date;
                                 $arr['estado']  = $status;
                                 $arr['descripcion']  = $status;
                                 $arr['siguiente']  = "X";
                             }
                             
+                            /*
+                            if($lastStatus != $status){
+                                array_push($arrayHistory,$arr);
+                            }
+                            */
+                            
                             array_push($arrayHistory,$arr);
+                            $lastStatus = $status;
                         }
                     }
+                    
+                    $carrier = "Andreani";
+                }else if($response->getStatusCode() == 404){   
+                    return array('success' => false,'error' => "No se encontró el envío en Andreani.");
                 }else{
-                    return response()->json(["success" => false, "error" => "El tracking no pertenece a ningun envío de Andreani."], 501);
+                    return array('success' => false,'error' => "Ocurrió un error en el servicio de Andreani.");
                 }
                 
-                
+            }else if($responseOrden->getStatusCode() == 404){   
+                return array('success' => false,'error' => "No se encontró el envío en Andreani.");
             }else{
-                return response()->json(["success" => false, "error" => "Error al loguearse en la API de Andreani."], 501);
+                return array('success' => false,'error' => "Ocurrió un error en el servicio de Andreani.");
             }
-            
-        }catch (Exception $e) {
-            return response()->json(["success" => false, "error" => "Error al obtener el historial del envío de Andreani."], 501);
+        }else{
+            return array('success' => false,'error' => "Ocurrió un error en el servicio de Andreani.");
         }
-        
-        return response()->json(["success" => true, "history" => $arrayHistory]);
+        return array('success' => true,'history' => $arrayHistory,'icon'=>$icon);
     }
     
     /**
@@ -374,45 +312,87 @@ class ApiController extends Controller
     */
     public function getTrackingChazki(Request $request, $trackingId)
     {
-        $arrayHistory = [];
+        $arrayHistory = null;
         $history = null;
         $client = new \GuzzleHttp\Client();
-        
+        $success = false;
         try{
-            $response = $client->get(env('CHAZKI_API_BASE_URL').'/shipment/NES'.$trackingId.'?key='.env('CHAZKI_API_KEY'),['http_errors' => false]);
-            print_r($response);
-            die('---');
-            if($response->getStatusCode() == 200){
-                $response = $response->getBody();
-                $response = json_decode($response);
-                $history = array_reverse($response->history);
+            $result = $this->searchTrackingChazki($trackingId);
             
-                //foreach de history y consulto en ShippingMessages
-                if($history){
-                    foreach($history as $h){
-                        $arr = [];
-                        $date = $h->date;
-                        
-                        $status = strtoupper($h->status);
-                        
-                        $shippingMessage = ShippingMessages::where('carrier_status_id',$status)->first();
-                        
+            if($result['success']){
+                $arrayHistory = $result['history'];
+                $success = true;
+            }else{
+                return response()->json(["success" => false, "error" => $result['error']], 501);
+            }
+        }catch (Exception $e) {
+            return response()->json(["success" => false, "error" => "Ocurrió un error en el servicio de Chazki."], 501);
+        }
+        
+        return response()->json(["success" => $success, "history" => $arrayHistory]);
+    }
+    
+    private function searchTrackingChazki($trackingId){
+        $arrayHistory = [];
+        $history = null;
+        $icon = null;
+        $client = new \GuzzleHttp\Client();
+
+        $response = $client->get(env('CHAZKI_API_BASE_URL').'/shipment/NES'.$trackingId.'?key='.env('CHAZKI_API_KEY'),['http_errors' => false]);
+            
+        if($response->getStatusCode() == 200){
+            //es chazki
+            $response = $response->getBody();
+            $response = json_decode($response);
+            $history = array_reverse($response->history);
+            
+            //foreach de history y consulto en ShippingMessages
+            if($history){
+                $x = true;
+                $lastStatus = null;
+                foreach($history as $h){
+                    $arr = [];
+                    $date = $h->date;
+                    
+                    $date = \DateTime::createFromFormat("Y-m-d\TH:i:s.u+", $date);
+                    $date = $date->format('d/m/Y H:i');
+                    
+                    $status = strtoupper($h->status);
+                    $shippingMessage = ShippingMessages::where('carrier_status_id',$status)->where('carrier_id',2)->first();
+                    
+                    if($shippingMessage){
                         $arr['fecha']  = $date;
                         $arr['estado']  = $status;
                         $arr['descripcion']  = $shippingMessage->message;
                         $arr['siguiente']  = $shippingMessage->next_status;
                         
+                        if($x){
+                            $icon = $shippingMessage->icon;
+                            $x = false;
+                        }
+                    }else{
+                        $arr['fecha']  = $date;
+                        $arr['estado']  = $status;
+                        $arr['descripcion']  = $status;
+                        $arr['siguiente']  = "X";
+                    }
+                    
+                    /*
+                    if($lastStatus != $status){
                         array_push($arrayHistory,$arr);
                     }
+                    */
+                    array_push($arrayHistory,$arr);
+                    $lastStatus = $status;
                 }
-            }else{
-                return response()->json(["success" => false, "error" => "El tracking no pertenece a ningun envío de Chazki."], 501);
             }
-            
-        }catch (Exception $e) {
-            return response()->json(["success" => false, "error" => "Error al obtener el historial del envío de Chazki."], 501);
+        }else if($response->getStatusCode() == 404){   
+            return array('success' => false,'error' => "No se encontró el envío en Chazki.");
+        }else{
+            return array('success' => false,'error' => "Ocurrió un error en el servicio de Chazki.");
         }
         
-        return response()->json(["success" => true, "history" => $arrayHistory]);
+        return array('success' => true,'history' => $arrayHistory,'icon'=>$icon);
     }
+    
 }
