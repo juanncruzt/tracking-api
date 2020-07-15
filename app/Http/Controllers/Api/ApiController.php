@@ -240,13 +240,11 @@ class ApiController extends Controller
                                 $arr['siguiente']  = "X";
                             }
                             
-                            /*
+                            
                             if($lastStatus != $status){
                                 array_push($arrayHistory,$arr);
                             }
-                            */
                             
-                            array_push($arrayHistory,$arr);
                             $lastStatus = $status;
                         }
                     }
@@ -377,12 +375,11 @@ class ApiController extends Controller
                         $arr['siguiente']  = "X";
                     }
                     
-                    /*
+                    
                     if($lastStatus != $status){
                         array_push($arrayHistory,$arr);
                     }
-                    */
-                    array_push($arrayHistory,$arr);
+                    
                     $lastStatus = $status;
                 }
             }
