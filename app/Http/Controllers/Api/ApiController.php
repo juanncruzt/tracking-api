@@ -49,7 +49,7 @@ class ApiController extends Controller
     
     private function setRedis($name,$val){
         $redis = Redis::connection();
-        $redis->set($name,$val);
+        $redis->set($name,$val,'EX',900);
     }
     
     private function getRedis($name){
@@ -130,6 +130,9 @@ class ApiController extends Controller
     */
     public function getTracking(Request $request, $trackingId)
     {
+        //Redis::del($trackingId);
+        //die("borado ".$trackingId);
+        
         $trackApiKey = env('TRACKING_API_KEY');
         $apiKey = $request->apiKey;
         
@@ -156,8 +159,9 @@ class ApiController extends Controller
                 $icon = $resultRedis->icon;
                 $arrayHistory = $resultRedis->history;
                 $success = true;
-            }else{
                 
+                die('No se guardo en redis');
+            }else{
                 //despues pruebo con chazki
                 $resultChazki = $this->searchTrackingChazki($trackingId);
                 
@@ -188,9 +192,9 @@ class ApiController extends Controller
                     $redis['icon'] = $icon;
                     $redis['history'] = $arrayHistory;
                     $this->setRedis($trackingId,json_encode($redis));
+                    
+                    die('Se guardo en redis');
                 }
-                
-                
             }
         }catch (Exception $e) {
             return response()->json(["success" => false, "error" => "Error al obtener el historial del envío."], 501);
