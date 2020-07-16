@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Carrier;
 use App\ShippingMessages;
+use Illuminate\Support\Facades\Redis;
 
 /**
 * @OA\Info(title="TrackingApi v1.0", version="1.0")
@@ -13,6 +14,51 @@ use App\ShippingMessages;
 */
 class ApiController extends Controller
 {
+    
+    /**
+    * @OA\Get(
+    *     path="/api/v1/redis/test",
+    *     summary="Test redis",
+    *     tags={"General"},
+    *     @OA\Response(
+    *         response=200,
+    *         description="Test redis."
+    *     ),
+    *     @OA\Response(
+    *         response="default",
+    *         description="Ha ocurrido un error."
+    *     )
+    * )
+    */
+    public function testRedis()
+    {
+        $name=null;
+        $success=false;
+        
+        $this->setRedis('name','Taylor');
+        $result = $this->getRedis('name');
+        
+        if($result != ""){
+            $name = $result;
+            $success=true;
+        }
+
+        return response()->json(["success" => $success, "name" => $name]);
+    }
+    
+    
+    private function setRedis($name,$val){
+        $redis = Redis::connection();
+        $redis->set($name,$val);
+    }
+    
+    private function getRedis($name){
+        $redis = Redis::connection();
+        $result = $redis->get($name);
+        
+        return $result;
+    }
+    
     
     /**
     * @OA\Get(
@@ -60,6 +106,13 @@ class ApiController extends Controller
     *     summary="Obtener tracking",
     *     tags={"General"},
     *     @OA\Parameter(
+    *         name="apiKey",
+    *         in="query",
+    *         description="API key",
+    *         required=true,
+    *         style="form"
+    *     ),
+    *     @OA\Parameter(
     *         name="trackingId",
     *         in="path",
     *         description="ID de tracking",
@@ -77,6 +130,13 @@ class ApiController extends Controller
     */
     public function getTracking(Request $request, $trackingId)
     {
+        $trackApiKey = env('TRACKING_API_KEY');
+        $apiKey = $request->apiKey;
+        
+        if($apiKey != $trackApiKey){
+            return response()->json(['error' => 'Credenciales inválidas: ' . $apiKey], 403);
+        }
+        
         $arrayHistory = [];
         $history = null;
         $carrier = null;
@@ -86,27 +146,51 @@ class ApiController extends Controller
         $client = new \GuzzleHttp\Client();
         
         try{
-            //primero pruebo con chazki
-            $resultChazki = $this->searchTrackingChazki($trackingId);
+            //guardo busco en redis, si no encuentra sigo
+            $resultRedis = $this->getRedis($trackingId);
             
-            if($resultChazki['success']){
-                $arrayHistory = $resultChazki['history'];
-                $icon = $resultChazki['icon'];
-                $success = true;
-                $carrier = "Chazki";
-            }else{
-                $error = $resultChazki['error'];
-                //en caso de error, pruebo con andreani
+            if($resultRedis != ''){
+                $resultRedis = json_decode($resultRedis);
                 
-                $resultAndreani = $this->searchTrackingAndreani($trackingId);
-                if($resultAndreani['success']){
-                    $arrayHistory = $resultAndreani['history'];
-                    $icon = $resultAndreani['icon'];
+                $carrier = $resultRedis->carrier;
+                $icon = $resultRedis->icon;
+                $arrayHistory = $resultRedis->history;
+                $success = true;
+            }else{
+                
+                //despues pruebo con chazki
+                $resultChazki = $this->searchTrackingChazki($trackingId);
+                
+                if($resultChazki['success']){
+                    $arrayHistory = $resultChazki['history'];
+                    $icon = $resultChazki['icon'];
                     $success = true;
-                    $carrier = "Andreani";
+                    $carrier = "Chazki";
                 }else{
-                    $error = $error." ".$resultAndreani['error'];
+                    $error = $resultChazki['error'];
+                    //en caso de error, pruebo con andreani
+                    
+                    $resultAndreani = $this->searchTrackingAndreani($trackingId);
+                    if($resultAndreani['success']){
+                        $arrayHistory = $resultAndreani['history'];
+                        $icon = $resultAndreani['icon'];
+                        $success = true;
+                        $carrier = "Andreani";
+                    }else{
+                        $error = $error." ".$resultAndreani['error'];
+                    }
                 }
+                
+                if($success){
+                    //guardo array en redis solo si no existe
+                    $redis = [];
+                    $redis['carrier'] = $carrier;
+                    $redis['icon'] = $icon;
+                    $redis['history'] = $arrayHistory;
+                    $this->setRedis($trackingId,json_encode($redis));
+                }
+                
+                
             }
         }catch (Exception $e) {
             return response()->json(["success" => false, "error" => "Error al obtener el historial del envío."], 501);
@@ -198,7 +282,7 @@ class ApiController extends Controller
             //primero obtener el numero de envio de aca y despues el trackeo
             //https://api.andreani.com/v1/envios?codigoCliente=CL0008157&idDeProducto=37026829
             $responseOrden = $client->get(env('ANDREANI_API_BASE_URL').'/v1/envios?codigoCliente=CL0008157&idDeProducto='.$trackingId,['http_errors' => false,'headers' => ['x-authorization-token' => $apiKey]]);
-            
+
             if($responseOrden->getStatusCode() == 200){
                 $responseOrden = $responseOrden->getBody();
                 $responseOrden = json_decode($responseOrden);

@@ -10,6 +10,23 @@
         }
     ],
     "paths": {
+        "/api/v1/redis/test": {
+            "get": {
+                "tags": [
+                    "General"
+                ],
+                "summary": "Test redis",
+                "operationId": "App\\Http\\Controllers\\Api\\ApiController::testRedis",
+                "responses": {
+                    "200": {
+                        "description": "Test redis."
+                    },
+                    "default": {
+                        "description": "Ha ocurrido un error."
+                    }
+                }
+            }
+        },
         "/api/v1/carriers/get": {
             "get": {
                 "tags": [
@@ -52,6 +69,13 @@
                 "summary": "Obtener tracking",
                 "operationId": "App\\Http\\Controllers\\Api\\ApiController::getTracking",
                 "parameters": [
+                    {
+                        "name": "apiKey",
+                        "in": "query",
+                        "description": "API key",
+                        "required": true,
+                        "style": "form"
+                    },
                     {
                         "name": "trackingId",
                         "in": "path",

@@ -34,3 +34,6 @@ Route::post('/v1/tracking/andreani/{trackingId}', 'Api\ApiController@getTracking
 //Chazki
 Route::get('/v1/carriers-messages/chazki', 'Api\ApiController@getMessagesChazki');
 Route::post('/v1/tracking/chazki/{trackingId}', 'Api\ApiController@getTrackingChazki');
+
+//Redis
+Route::get('/v1/redis/test', 'Api\ApiController@testRedis');
