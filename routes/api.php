@@ -12,8 +12,9 @@ use Illuminate\Support\Facades\Route;
 | routes are loaded by the RouteServiceProvider within a group which
 | is assigned the "api" middleware group. Enjoy building your API!
 |
-*/
-header('Access-Control-Allow-Origin', "*");
+ */
+
+//header('Access-Control-Allow-Origin', "*");
 
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
@@ -37,3 +38,5 @@ Route::post('/v1/tracking/chazki/{trackingId}', 'Api\ApiController@getTrackingCh
 
 //Redis
 Route::get('/v1/redis/test', 'Api\ApiController@testRedis');
+
+\URL::forceScheme('https');

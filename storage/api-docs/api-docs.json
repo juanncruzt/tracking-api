@@ -4,11 +4,6 @@
         "title": "TrackingApi v1.0",
         "version": "1.0"
     },
-    "servers": [
-        {
-            "url": "http://odin.microblet.com/tracking-api/public/index.php"
-        }
-    ],
     "paths": {
         "/api/v1/redis/test": {
             "get": {
