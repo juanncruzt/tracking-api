@@ -159,8 +159,6 @@ class ApiController extends Controller
                 $icon = $resultRedis->icon;
                 $arrayHistory = $resultRedis->history;
                 $success = true;
-                
-                die('No se guardo en redis');
             }else{
                 //despues pruebo con chazki
                 $resultChazki = $this->searchTrackingChazki($trackingId);
@@ -192,8 +190,6 @@ class ApiController extends Controller
                     $redis['icon'] = $icon;
                     $redis['history'] = $arrayHistory;
                     $this->setRedis($trackingId,json_encode($redis));
-                    
-                    die('Se guardo en redis');
                 }
             }
         }catch (Exception $e) {
