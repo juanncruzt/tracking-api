@@ -22,21 +22,9 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 //General
-Route::get('/v1/carriers/get', 'Api\ApiController@getCarriers');
-Route::get('/v1/carriers-messages/all', 'Api\ApiController@getCarrierMessages');
 Route::get('/v1/tracking/{trackingId}', 'Api\ApiController@getTracking');
-
-
-//Andreani
-Route::get('/v1/carriers-messages/andreani', 'Api\ApiController@getMessagesAndreani');
-Route::post('/v1/tracking/andreani/{trackingId}', 'Api\ApiController@getTrackingAndreani');
-
-
-//Chazki
-Route::get('/v1/carriers-messages/chazki', 'Api\ApiController@getMessagesChazki');
-Route::post('/v1/tracking/chazki/{trackingId}', 'Api\ApiController@getTrackingChazki');
 
 //Redis
 Route::get('/v1/redis/test', 'Api\ApiController@testRedis');
 
-\URL::forceScheme('https');
+//URL::forceScheme('https');

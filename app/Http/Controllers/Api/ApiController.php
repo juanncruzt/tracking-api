@@ -60,46 +60,7 @@ class ApiController extends Controller
     }
     
     
-    /**
-    * @OA\Get(
-    *     path="/api/v1/carriers/get",
-    *     summary="Mostrar carriers",
-    *     tags={"General"},
-    *     @OA\Response(
-    *         response=200,
-    *         description="Mostrar todos los carriers."
-    *     ),
-    *     @OA\Response(
-    *         response="default",
-    *         description="Ha ocurrido un error."
-    *     )
-    * )
-    */
-    public function getCarriers()
-    {
-        return Carrier::all();
-    }
-    
-    /**
-    * @OA\Get(
-    *     path="/api/v1/carriers-messages/all",
-    *     summary="Mostrar mensajes de carriers",
-    *     tags={"General"},
-    *     @OA\Response(
-    *         response=200,
-    *         description="Mostrar todos los mensajes de carriers."
-    *     ),
-    *     @OA\Response(
-    *         response="default",
-    *         description="Ha ocurrido un error."
-    *     )
-    * )
-    */
-    public function getCarrierMessages()
-    {
-        return ShippingMessages::all();
-    }
-    
+   
     /**
     * @OA\Get(
     *     path="/api/v1/tracking/{trackingId}",
@@ -152,7 +113,14 @@ class ApiController extends Controller
             //guardo busco en redis, si no encuentra sigo
             $resultRedis = $this->getRedis($trackingId);
             
+            
             if($resultRedis != ''){
+                
+                if (!is_object(json_decode($resultRedis)))
+                { 
+                    return response()->json(["success" => false, "error" => $resultRedis." Por favor, inténtelo de nuevo más tarde!"]);
+                }
+                
                 $resultRedis = json_decode($resultRedis);
                 
                 $carrier = $resultRedis->carrier;
@@ -197,74 +165,11 @@ class ApiController extends Controller
         }
         
         if(!$success){
+            $this->setRedis($trackingId, $error);
             return response()->json(["success" => false, "error" => $error." Por favor, inténtelo de nuevo más tarde!"]);
         }
         
         return response()->json(["success"=>true,"carrier"=>$carrier,"icon"=>$icon,"history"=>$arrayHistory]);
-    }
-    
-    
-    /**
-    * @OA\Get(
-    *     path="/api/v1/carriers-messages/andreani",
-    *     summary="Mostrar mensajes de Andreani",
-    *     tags={"Andreani"},
-    *     @OA\Response(
-    *         response=200,
-    *         description="Mostrar todos los mensajes de Andreani."
-    *     ),
-    *     @OA\Response(
-    *         response="default",
-    *         description="Ha ocurrido un error."
-    *     )
-    * )
-    */
-    public function getMessagesAndreani()
-    {
-        return ShippingMessages::where('carrier_id',1)->get();
-    }
-    
-    /**
-    * @OA\Post(
-    *     path="/api/v1/tracking/andreani/{trackingId}",
-    *     summary="Obtener tracking de Andreani",
-    *     tags={"Andreani"},
-    *     @OA\Parameter(
-    *         name="trackingId",
-    *         in="path",
-    *         description="ID de tracking",
-    *         required=true
-    *     ),
-    *     @OA\Response(
-    *         response=200,
-    *         description="Obtener tracking de Andreani"
-    *     ),
-    *     @OA\Response(
-    *         response="default",
-    *         description="Ha ocurrido un error."
-    *     )
-    * )
-    */
-    public function getTrackingAndreani(Request $request, $trackingId)
-    {
-        $arrayHistory = null;
-        $history = null;
-        $client = new \GuzzleHttp\Client();
-        $success = false;
-        try{
-            $result = $this->searchTrackingAndreani($trackingId);
-            
-            if($result['success']){
-                $arrayHistory = $result['history'];
-                $success = true;
-            }else{
-                return response()->json(["success" => false, "error" => $result['error']], 501);
-            }
-        }catch (Exception $e) {
-            return response()->json(["success" => false, "error" => "Ocurrió un error en el servicio de Andreani."], 501);
-        }
-        
-        return response()->json(["success" => $success, "history" => $arrayHistory]);
     }
     
     private function searchTrackingAndreani($trackingId){
@@ -349,69 +254,6 @@ class ApiController extends Controller
             return array('success' => false,'error' => "Ocurrió un error en el servicio de Andreani.");
         }
         return array('success' => true,'history' => $arrayHistory,'icon'=>$icon);
-    }
-    
-    /**
-    * @OA\Get(
-    *     path="/api/v1/carriers-messages/chazki",
-    *     summary="Mostrar mensajes de Chazki",
-    *     tags={"Chazki"},
-    *     @OA\Response(
-    *         response=200,
-    *         description="Mostrar todos los mensajes de Chazki."
-    *     ),
-    *     @OA\Response(
-    *         response="default",
-    *         description="Ha ocurrido un error."
-    *     )
-    * )
-    */
-    public function getMessagesChazki()
-    {
-        return ShippingMessages::where('carrier_id',2)->get();
-    }
-    
-    /**
-    * @OA\Post(
-    *     path="/api/v1/tracking/chazki/{trackingId}",
-    *     summary="Obtener tracking de Chazki",
-    *     tags={"Chazki"},
-    *     @OA\Parameter(
-    *         name="trackingId",
-    *         in="path",
-    *         description="ID de tracking",
-    *         required=true
-    *     ),
-    *     @OA\Response(
-    *         response=200,
-    *         description="Obtener tracking de Chazki"
-    *     ),
-    *     @OA\Response(
-    *         response="default",
-    *         description="Ha ocurrido un error."
-    *     )
-    * )
-    */
-    public function getTrackingChazki(Request $request, $trackingId)
-    {
-        $arrayHistory = null;
-        $history = null;
-        $client = new \GuzzleHttp\Client();
-        $success = false;
-        try{
-            $result = $this->searchTrackingChazki($trackingId);
-            
-            if($result['success']){
-                $arrayHistory = $result['history'];
-                $success = true;
-            }else{
-                return response()->json(["success" => false, "error" => $result['error']], 501);
-            }
-        }catch (Exception $e) {
-            return response()->json(["success" => false, "error" => "Ocurrió un error en el servicio de Chazki."], 501);
-        }
-        
-        return response()->json(["success" => $success, "history" => $arrayHistory]);
     }
     
     private function searchTrackingChazki($trackingId){
