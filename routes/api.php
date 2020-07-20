@@ -16,15 +16,17 @@ use Illuminate\Support\Facades\Route;
 
 //header('Access-Control-Allow-Origin', "*");
 
-
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
+Route::group(['middleware' => ['cors']], function () {
+    Route::middleware('auth:api')->get('/user', function (Request $request) {
+        return $request->user();
+    });
+    
+    //General
+    Route::get('/v1/tracking/{trackingId}', 'Api\ApiController@getTracking');
+    
+    //Redis
+    Route::get('/v1/redis/test', 'Api\ApiController@testRedis');
 });
 
-//General
-Route::get('/v1/tracking/{trackingId}', 'Api\ApiController@getTracking');
 
-//Redis
-Route::get('/v1/redis/test', 'Api\ApiController@testRedis');
-
-//URL::forceScheme('https');
+URL::forceScheme('https');
