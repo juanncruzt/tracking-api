@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
  */
 
-//header('Access-Control-Allow-Origin: *');
+//header('Access-Control-Allow-Origin:https://trackingenvios.com');
 
 Route::group(['middleware' => ['cors']], function () {
     Route::middleware('auth:api')->get('/user', function (Request $request) {
