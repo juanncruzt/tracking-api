@@ -29,4 +29,4 @@ Route::group(['middleware' => ['cors']], function () {
 });
 
 
-URL::forceScheme('https');
+//URL::forceScheme('https');
