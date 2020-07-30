@@ -119,7 +119,7 @@ class ApiController extends Controller
                 if (!is_object(json_decode($resultRedis)))
                 { 
                     $x = $resultRedis." Por favor, inténtelo de nuevo más tarde!";
-                    return response()->json(["success" => false, "error" => "No pudimos encontrar tu número de pedido. Es posible que el proveedor logístico no lo tenga aún. Intentá nuevamente más tarde."]);
+                    return response()->json(["success" => false, "error" => "Tu pedido está siendo procesado. por favor, intentá nuevamente más tarde."]);
                 }
                 
                 $resultRedis = json_decode($resultRedis);
@@ -162,13 +162,13 @@ class ApiController extends Controller
                 }
             }
         }catch (Exception $e) {
-            return response()->json(["success" => false, "error" => "No pudimos encontrar tu número de pedido. Es posible que el proveedor logístico no lo tenga aún. Intentá nuevamente más tarde."], 501);
+            return response()->json(["success" => false, "error" => "Tu pedido está siendo procesado. por favor, intentá nuevamente más tarde."], 501);
         }
         
         if(!$success){
             $this->setRedis($trackingId, $error);
             $error = $error." Por favor, inténtelo de nuevo más tarde!";
-            return response()->json(["success" => false, "error" => "No pudimos encontrar tu número de pedido. Es posible que el proveedor logístico no lo tenga aún. Intentá nuevamente más tarde."]);
+            return response()->json(["success" => false, "error" => "Tu pedido está siendo procesado. por favor, intentá nuevamente más tarde."]);
         }
         
         return response()->json(["success"=>true,"carrier"=>$carrier,"icon"=>$icon,"history"=>$arrayHistory]);
