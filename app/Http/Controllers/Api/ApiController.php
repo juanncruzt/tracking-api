@@ -91,9 +91,6 @@ class ApiController extends Controller
     */
     public function getTracking(Request $request, $trackingId)
     {
-        //Redis::del($trackingId);
-        //die("borado ".$trackingId);
-        
         $trackApiKey = env('TRACKING_API_KEY');
         $apiKey = $request->apiKey;
         
@@ -228,12 +225,17 @@ class ApiController extends Controller
                                 $arr['fecha']  = $date;
                                 $arr['estado']  = $status;
                                 $arr['descripcion']  = $status;
-                                $arr['siguiente']  = "X";
+                                $arr['siguiente']  = "-";
                             }
                             
-                            
                             if($lastStatus != $status){
-                                array_push($arrayHistory,$arr);
+                                if($shippingMessage){
+                                    if($shippingMessage->id != 95 && $shippingMessage->id != 121){
+                                        array_push($arrayHistory,$arr);
+                                    }
+                                }else{
+                                    array_push($arrayHistory,$arr);
+                                }        
                             }
                             
                             $lastStatus = $status;
@@ -300,7 +302,7 @@ class ApiController extends Controller
                         $arr['fecha']  = $date;
                         $arr['estado']  = $status;
                         $arr['descripcion']  = $status;
-                        $arr['siguiente']  = "X";
+                        $arr['siguiente']  = "-";
                     }
                     
                     
