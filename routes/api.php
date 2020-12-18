@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
  */
 
-header('Access-Control-Allow-Origin:https://trackingenvios.com');
+//header('Access-Control-Allow-Origin:https://trackingenvios.com');
 
 Route::group(['middleware' => ['cors']], function () {
     Route::middleware('auth:api')->get('/user', function (Request $request) {
@@ -26,6 +26,9 @@ Route::group(['middleware' => ['cors']], function () {
     
     //Redis
     Route::get('/v1/redis/test', 'Api\ApiController@testRedis');
+    
+    //Webhook
+    Route::post('/v1/shipping/save-status-pickit', 'WebhookController@getStatusPickit');
 });
 
 

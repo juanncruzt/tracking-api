@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Carrier;
 use App\ShippingMessages;
+use App\TrackingHistory;
 use Illuminate\Support\Facades\Redis;
 
 /**
@@ -59,7 +60,6 @@ class ApiController extends Controller
         return $result;
     }
     
-    
    
     /**
     * @OA\Get(
@@ -109,7 +109,7 @@ class ApiController extends Controller
         try{
             //guardo busco en redis, si no encuentra sigo
             $resultRedis = $this->getRedis($trackingId);
-            
+            $resultRedis = '';
             
             if($resultRedis != ''){
                 
@@ -126,7 +126,7 @@ class ApiController extends Controller
                 $arrayHistory = $resultRedis->history;
                 $success = true;
             }else{
-                //despues pruebo con chazki
+                //Busco en CHAZKI
                 $resultChazki = $this->searchTrackingChazki($trackingId);
                 
                 if($resultChazki['success']){
@@ -136,7 +136,7 @@ class ApiController extends Controller
                     $carrier = "Chazki";
                 }else{
                     $error = $resultChazki['error'];
-                    //en caso de error, pruebo con andreani
+                    //En caso de error, busco en ANDREANI
                     
                     $resultAndreani = $this->searchTrackingAndreani($trackingId);
                     if($resultAndreani['success']){
@@ -146,6 +146,17 @@ class ApiController extends Controller
                         $carrier = "Andreani";
                     }else{
                         $error = $error." ".$resultAndreani['error'];
+                        //En caso de error, busco en PICKIT
+                        
+                        $resultPickit = $this->searchTrackingPickit($trackingId);
+                        if($resultPickit['success']){
+                            $arrayHistory = $resultPickit['history'];
+                            $icon = $resultPickit['icon'];
+                            $success = true;
+                            $carrier = "Pickit";
+                        }else{
+                            $error = $error." ".$resultPickit['error'];
+                        }
                     }
                 }
                 
@@ -317,6 +328,58 @@ class ApiController extends Controller
             return array('success' => false,'error' => "No se encontró el envío en Chazki.");
         }else{
             return array('success' => false,'error' => "Ocurrió un error en el servicio de Chazki.");
+        }
+        
+        return array('success' => true,'history' => $arrayHistory,'icon'=>$icon);
+    }
+    
+    private function searchTrackingPickit($trackingId){
+        $arrayHistory = [];
+        $history = null;
+        $icon = null;
+        
+        $trackingHistory = TrackingHistory::where('id_tracking',$trackingId)->where('id_carrier',3)->orderBy('id', 'DESC')->get();
+        
+        if(sizeof($trackingHistory)>0){
+            //foreach de history y consulto en ShippingMessages
+            $x = true;
+            $lastStatus = null;
+            $status = null;
+            foreach($trackingHistory as $h){
+                $arr = [];
+                $date = \DateTime::createFromFormat("Y-m-d H:i:s", $h->created_at);
+                $date = $date->format('d/m/Y H:i');
+                
+                $shippingMessage = ShippingMessages::where('id',$h->id_shipping_messages)->first();
+                
+                if($shippingMessage){
+                    $status = strtoupper($shippingMessage->carrier_status_id);
+                    $arr['fecha']  = $date;
+                    $arr['estado']  = $shippingMessage->carrier_status_id;
+                    $arr['descripcion']  = $shippingMessage->message;
+                    $arr['siguiente']  = $shippingMessage->next_status;
+                    
+                    if($x){
+                        $icon = $shippingMessage->icon;
+                        $x = false;
+                    }
+                }else{
+                    $arr['fecha']  = $date;
+                    $arr['estado']  = $status;
+                    $arr['descripcion']  = $status;
+                    $arr['siguiente']  = "-";
+                }
+                
+
+                if($lastStatus != $status){
+                    array_push($arrayHistory,$arr);
+                }
+                
+                $lastStatus = $status;
+            }
+            
+        }else{   
+            return array('success' => false,'error' => "No se encontró el envío en Pickit.");
         }
         
         return array('success' => true,'history' => $arrayHistory,'icon'=>$icon);
