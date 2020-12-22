@@ -28,7 +28,8 @@ class WebhookController extends Controller
             $codTransaccion = $json['CodigoTransaccion'];
             $idEstado = $json['IdEstado'];
             $txtEstado = $json['TxtEstado'];  
-            $order= $json['Order']; 
+            $order = $json['Order']; 
+            $order = trim($order);
             
             Storage::disk('local')->put($token.'-'.(new \DateTime())->format('Y-m-d-H-i-s').'-WEBHOOK-PICKIT.json', $jsonRequest);
             
