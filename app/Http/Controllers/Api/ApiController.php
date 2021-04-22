@@ -108,7 +108,7 @@ class ApiController extends Controller
         
         try{
             //guardo busco en redis, si no encuentra sigo
-            $resultRedis = $this->getRedis($trackingId);
+            //$resultRedis = $this->getRedis($trackingId);
             $resultRedis = '';
             
             if($resultRedis != ''){
@@ -136,26 +136,26 @@ class ApiController extends Controller
                     $carrier = "Chazki";
                 }else{
                     $error = $resultChazki['error'];
-                    //En caso de error, busco en ANDREANI
                     
-                    $resultAndreani = $this->searchTrackingAndreani($trackingId);
-                    if($resultAndreani['success']){
-                        $arrayHistory = $resultAndreani['history'];
-                        $icon = $resultAndreani['icon'];
+                    //En caso de error, busco en PICKIT
+                    $resultPickit = $this->searchTrackingPickit($trackingId);
+                    if($resultPickit['success']){
+                        $arrayHistory = $resultPickit['history'];
+                        $icon = $resultPickit['icon'];
                         $success = true;
-                        $carrier = "Andreani";
+                        $carrier = "Pickit";
                     }else{
-                        $error = $error." ".$resultAndreani['error'];
-                        //En caso de error, busco en PICKIT
+                        $error = $error." ".$resultPickit['error'];
                         
-                        $resultPickit = $this->searchTrackingPickit($trackingId);
-                        if($resultPickit['success']){
-                            $arrayHistory = $resultPickit['history'];
-                            $icon = $resultPickit['icon'];
+                        //En caso de error, busco en ANDREANI
+                        $resultAndreani = $this->searchTrackingAndreani($trackingId);
+                        if($resultAndreani['success']){
+                            $arrayHistory = $resultAndreani['history'];
+                            $icon = $resultAndreani['icon'];
                             $success = true;
-                            $carrier = "Pickit";
+                            $carrier = "Andreani";
                         }else{
-                            $error = $error." ".$resultPickit['error'];
+                            $error = $error." ".$resultAndreani['error'];
                         }
                     }
                 }
